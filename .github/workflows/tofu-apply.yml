@@ -90,6 +90,7 @@ jobs:
       - name: Get OpenTofu Outputs for Bootstrapping accounts
         working-directory: environments/main
         run: |
+          mkdir -p /tmp/tofu-outputs
           bootstrap_configs=$(tofu output)
           echo "bootstrap_configs = ${bootstrap_configs}" > /tmp/tofu-outputs/bootstrap_configs.tfvars
 
@@ -137,6 +138,7 @@ jobs:
       - name: Get OpenTofu Outputs for creating IaC repos
         working-directory: environments/bootstrap
         run: |
+          mkdir -p /tmp/tofu-outputs
           iac_repo_configs=$(tofu output)
           echo "bootstrap_configs = ${iac_repo_configs}" > /tmp/tofu-outputs/iac_repo_configs.tfvars
 
