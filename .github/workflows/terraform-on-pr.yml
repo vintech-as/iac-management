@@ -1,4 +1,4 @@
-name: Run Terraform Plan
+name: Terraform Plan, Validate, and Comment on PR
 
 on:
   pull_request:
