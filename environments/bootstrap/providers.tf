@@ -1,10 +1,10 @@
 terraform {
-  required_version = ">= 1.11.4"
-}
+  required_version = ">= 1.9.1"
 
-provider "aws" {
-  region = "eu-west-1"
-  assume_role {
-    role_arn = "arn:aws:iam::${var.account_id}:role/OrganizationAccountAccessRole"
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
   }
 }
