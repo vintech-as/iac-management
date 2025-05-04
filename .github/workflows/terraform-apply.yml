@@ -91,15 +91,8 @@ jobs:
             -out=tfplan
           terraform apply -auto-approve tfplan
 
-      - name: Check If Bootstrap is Needed
-        id: check_for_bootstrap
-        run: |
-          chmod +x .github/scripts/check_if_bootstrap_needed.sh
-          .github/scripts/check_if_bootstrap_needed.sh
-
       - name: Get Terraform Outputs
         id: get_outputs
-        if: steps.check_for_bootstrap.outputs.BOOTSTRAP_NEEDED == 'true'
         working-directory: environments/main
         run: |
           repo_account_tuples=$(terraform output -json repo_account_tuples)
@@ -109,7 +102,6 @@ jobs:
     name: Bootstrap Accounts
     runs-on: ubuntu-latest
     needs: terraform-apply
-    if: needs.terraform-apply.outputs.BOOTSTRAP_NEEDED == 'true'
 
     strategy:
       fail-fast: false
@@ -172,7 +164,6 @@ jobs:
     name: Project IaC Repo
     runs-on: ubuntu-latest
     needs: [terraform-apply, bootstrap-accounts]
-    if: needs.terraform-apply.outputs.BOOTSTRAP_NEEDED == 'true'
 
     steps:
       - name: Checkout code
