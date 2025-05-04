@@ -1,4 +1,4 @@
-name: Terraform Plan, Validate, and Comment on PR
+name: OpenTofu Plan, Validate, and Comment on PR
 
 on:
   pull_request:
@@ -12,9 +12,9 @@ permissions:
   pull-requests: write
 
 jobs:
-  terraform-plan:
-    name: Terraform Plan, Validate, and Comment for the main environment
-    uses: ./.github/workflows/terraform-init-validate-plan-comment.yml
+  tofu-plan:
+    name: OpenTofu Plan, Validate, and Comment for the main environment
+    uses: ./.github/workflows/tofu-init-validate-plan-comment.yml
     with:
       working-directory: 'environments/main'
       var-file-path: 'config/projects.tfvars'

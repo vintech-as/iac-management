@@ -1,9 +1,9 @@
 resource "aws_s3_bucket" "tf_state" {
-  bucket = "${var.iac_repo_name}-terraform-state-${var.account_id}"
+  bucket = "${var.iac_repo_name}-tofu-state-${var.account_id}"
 
   tags = {
-    Name        = "Terraform State Bucket"
-    Environment = "Terraform"
+    Name        = "OpenTofu State Bucket"
+    Environment = var.environment
   }
 }
 

@@ -4,13 +4,10 @@ variable "organization_name" {
   default     = "vintech-as"
 }
 
-variable "iac_repo_name" {
-  description = "Name of the IaC repository"
-  type        = string
-}
-
-variable "environment_role_arns" {
-  description = "Map of environment names to their AWS role ARNs for deployment"
-  type        = map(string)
-  default     = {}
+variable "repository_configs" {
+  description = "List of repository configurations"
+  type = list(object({
+    iac_repo_name         = string
+    environment_role_arns = map(string)
+  }))
 }

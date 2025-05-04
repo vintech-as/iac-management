@@ -13,3 +13,8 @@ variable "iac_repo_name" {
   description = "The name of the IaC repository for the project"
   type        = string
 }
+
+variable "environment" {
+  description = "The name of the AWS environment"
+  type        = string
+}

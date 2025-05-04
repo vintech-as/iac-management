@@ -1,15 +1,15 @@
-name: Terraform Init, Validate, Plan and Comment
+name: OpenTofu Init, Validate, Plan and Comment
 
 on:
   workflow_call:
     inputs:
       working-directory:
-        description: 'Directory containing Terraform configuration'
+        description: 'Directory containing OpenTofu configuration'
         type: string
         required: true
         default: 'environments/main'
       var-file-path:
-        description: 'Path to the Terraform variable file, relative to the repository root'
+        description: 'Path to the OpenTofu variable file, relative to the repository root'
         type: string
         required: false
         default: 'config/projects.tfvars'
@@ -27,7 +27,7 @@ permissions:
 
 jobs:
   init-validate-plan-comment:
-    name: Terraform Init, Validate, Plan and Comment
+    name: OpenTofu Init, Validate, Plan and Comment
     runs-on: ubuntu-latest
 
     steps:
@@ -54,32 +54,32 @@ jobs:
         run: |
           echo "GH_TOKEN=${GITHUB_TOKEN}" >> $GITHUB_ENV
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
 
-      - name: Terraform Init
+      - name: OpenTofu Init
         working-directory: ${{ inputs.working-directory }}
-        run: terraform init
+        run: tofu init
 
-      - name: Terraform Validate
+      - name: OpenTofu Validate
         working-directory: ${{ inputs.working-directory }}
-        run: terraform validate -no-color
+        run: tofu validate -no-color
 
-      - name: Terraform Plan
+      - name: OpenTofu Plan
         id: plan
         working-directory: ${{ inputs.working-directory }}
         run: |
-          terraform plan \
+          tofu plan \
             -var-file="${GITHUB_WORKSPACE}/${{ inputs.var-file-path }}" \
             -no-color \
             -out=tfplan
-          terraform show -no-color tfplan > plan.txt
+          tofu show -no-color tfplan > plan.txt
 
       - name: Check for Plan Errors
         working-directory: ${{ inputs.working-directory }}
         run: |
           if grep -q "Error:" plan.txt; then
-            echo "Terraform plan contains errors"
+            echo "OpenTofu plan contains errors"
             exit 1
           fi
 
