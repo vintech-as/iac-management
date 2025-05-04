@@ -50,7 +50,6 @@ jobs:
     if: github.ref == 'refs/heads/master'
 
     outputs:
-      bootstrap_needed: ${{ steps.check_for_bootstrap.outputs.BOOTSTRAP_NEEDED }}
       repo_account_tuples: ${{ steps.get_outputs.outputs.repo_account_tuples }}
 
     steps:
@@ -102,6 +101,7 @@ jobs:
     name: Bootstrap Accounts
     runs-on: ubuntu-latest
     needs: terraform-apply
+    if: ${{ fromJson(needs.terraform-apply.outputs.repo_account_tuples)[0] != null }}
 
     strategy:
       fail-fast: false
@@ -164,6 +164,7 @@ jobs:
     name: Project IaC Repo
     runs-on: ubuntu-latest
     needs: [terraform-apply, bootstrap-accounts]
+    if: ${{ fromJson(needs.terraform-apply.outputs.repo_account_tuples)[0] != null }}
 
     steps:
       - name: Checkout code
