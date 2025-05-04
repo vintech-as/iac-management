@@ -1,0 +1,91 @@
+name: Terraform Init, Validate, Plan and Comment
+
+on:
+  workflow_call:
+    inputs:
+      working-directory:
+        description: 'Directory containing Terraform configuration'
+        type: string
+        required: true
+        default: 'environments/main'
+      var-file-path:
+        description: 'Path to the Terraform variable file, relative to the repository root'
+        type: string
+        required: false
+        default: 'config/projects.tfvars'
+      skip-comment:
+        description: 'Skip commenting on the PR'
+        type: boolean
+        required: false
+        default: false
+
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  init-validate-plan-comment:
+    name: Terraform Init, Validate, Plan and Comment
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::061286906622:role/GitHubActionsDeployRole
+          role-session-name: GitHubActionsSession
+          aws-region: eu-west-1
+
+      - name: Generate GitHub App token
+        id: generate_token
+        uses: tibdex/github-app-token@v2
+        with:
+          app_id: ${{ secrets.GH_APP_ID }}
+          private_key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+
+      - name: Set Access Token as Environment Variable
+        env:
+          GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
+        run: |
+          echo "GH_TOKEN=${GITHUB_TOKEN}" >> $GITHUB_ENV
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        working-directory: ${{ inputs.working-directory }}
+        run: terraform init
+
+      - name: Terraform Validate
+        working-directory: ${{ inputs.working-directory }}
+        run: terraform validate -no-color
+
+      - name: Terraform Plan
+        id: plan
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          terraform plan \
+            -var-file="${GITHUB_WORKSPACE}/${{ inputs.var-file-path }}" \
+            -no-color \
+            -out=tfplan
+          terraform show -no-color tfplan > plan.txt
+
+      - name: Check for Plan Errors
+        working-directory: ${{ inputs.working-directory }}
+        run: |
+          if grep -q "Error:" plan.txt; then
+            echo "Terraform plan contains errors"
+            exit 1
+          fi
+
+      - name: Comment Plan on PR
+        uses: mshick/add-pr-comment@v2
+        if: ${{ inputs.skip-comment != 'true' }}
+        with:
+          message-path: ${{ inputs.working-directory }}/plan.txt
+          repo-token: ${{ secrets.GITHUB_TOKEN }}

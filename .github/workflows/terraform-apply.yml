@@ -1,0 +1,217 @@
+name: Terraform Apply
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+    paths:
+      - "**/*.tf"
+      - "**/*.tfvars"
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  terraform-plan:
+    name: Terraform Plan, Validate, and Comment for the main environment
+    uses: ./.github/workflows/terraform-init-validate-plan-comment.yml
+    with:
+      working-directory: "environments/main"
+      var-file-path: "config/projects.tfvars"
+      skip-comment: true
+    secrets: inherit
+
+  manual-approval:
+    name: Manual Approval
+    runs-on: ubuntu-latest
+    needs: terraform-plan
+    if: success()
+
+    permissions:
+      issues: write
+
+    steps:
+      - name: Await Manual Approval
+        uses: trstringer/manual-approval@v1
+        with:
+          secret: ${{ github.TOKEN }}
+          approvers: haraldvinje
+          minimum-approvals: 1
+          issue-title: "Manual Approval Required for Terraform Apply"
+          issue-body: "Please approve or deny the deployment."
+
+  terraform-apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    needs: manual-approval
+    if: github.ref == 'refs/heads/master'
+
+    outputs:
+      bootstrap_needed: ${{ steps.check_for_bootstrap.outputs.BOOTSTRAP_NEEDED }}
+      repo_account_tuples: ${{ steps.get_outputs.outputs.repo_account_tuples }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate GitHub App token
+        id: generate_token
+        uses: tibdex/github-app-token@v2
+        with:
+          app_id: ${{ secrets.GH_APP_ID }}
+          private_key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+
+      - name: Set Access Token as Environment Variable
+        env:
+          GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
+        run: |
+          echo "Setting up the GitHub App token as an environment variable..."
+          echo "GH_TOKEN=${GITHUB_TOKEN}" >> $GITHUB_ENV
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: eu-west-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init, Plan and Apply
+        working-directory: environments/main
+        run: |
+          terraform init
+          terraform validate -no-color
+          terraform plan \
+            -var-file="../../config/projects.tfvars" \
+            -no-color \
+            -out=tfplan
+          terraform apply -auto-approve tfplan
+
+      - name: Check If Bootstrap is Needed
+        id: check_for_bootstrap
+        run: |
+          chmod +x .github/scripts/check_if_bootstrap_needed.sh
+          .github/scripts/check_if_bootstrap_needed.sh
+
+      - name: Get Terraform Outputs
+        id: get_outputs
+        if: steps.check_for_bootstrap.outputs.BOOTSTRAP_NEEDED == 'true'
+        working-directory: environments/main
+        run: |
+          repo_account_tuples=$(terraform output -json repo_account_tuples)
+          echo "repo_account_tuples=${repo_account_tuples}" >> $GITHUB_OUTPUT
+
+  bootstrap-accounts:
+    name: Bootstrap Accounts
+    runs-on: ubuntu-latest
+    needs: terraform-apply
+    if: needs.terraform-apply.outputs.BOOTSTRAP_NEEDED == 'true'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        tuple: ${{ fromJson(needs.terraform-apply.outputs.repo_account_tuples) }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: eu-west-1
+
+      - name: Assume Role and Bootstrap Resources
+        working-directory: environments/bootstrap
+        run: |
+          set -e
+          # Access the correct matrix variables using the 'tuple' property
+          account_id=${{ matrix.tuple.account_id }}
+          repo_name=${{ matrix.tuple.repo_name }}
+          project_environment=${{matrix.tuple.environment}}
+
+          echo "Bootstrapping account: $account_id for repo: $repo_name, env: $project_environment"
+
+          # echo "Waiting for account to become available (60s)..."
+          sleep 60
+
+          terraform init
+          terraform apply -auto-approve \
+            -var="account_id=${account_id}" \
+            -var="iac_repo_name=${repo_name}"
+
+          iac_role_arn=$(terraform output -raw iac_role_arn)
+
+          # Create a directory to store output files
+          mkdir -p /tmp/repo-data
+
+          # Append to a file named after the repo
+          echo "${iac_role_arn}" >> /tmp/repo-data/${repo_name}---${project_environment}.txt
+
+          # Store in outputs for debugging
+          echo "role_arn=${iac_role_arn}" >> $GITHUB_OUTPUT
+          echo "project_environment=${project_environment}" >> $GITHUB_OUTPUT
+
+      - name: Upload Role ARN Data
+        uses: actions/upload-artifact@v4
+        with:
+          name: repo-role-arns
+          path: /tmp/repo-data/
+          overwrite: true
+          retention-days: 1
+
+  project-iac-repo:
+    name: Project IaC Repo
+    runs-on: ubuntu-latest
+    needs: [terraform-apply, bootstrap-accounts]
+    if: needs.terraform-apply.outputs.BOOTSTRAP_NEEDED == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate GitHub App token
+        id: generate_token
+        uses: tibdex/github-app-token@v2
+        with:
+          app_id: ${{ secrets.GH_APP_ID }}
+          private_key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+
+      - name: Set Access Token as Environment Variable
+        env:
+          GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
+        run: |
+          echo "Setting up the GitHub App token as an environment variable..."
+          echo "GH_TOKEN=${GITHUB_TOKEN}" >> $GITHUB_ENV
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: eu-west-1
+
+      - name: Download Role ARN Data
+        uses: actions/download-artifact@v4
+        with:
+          name: repo-role-arns
+          path: ./repo-data
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Process Role ARN Data and Apply
+        id: process_arns
+        run: |
+          # Make script executable
+          chmod +x .github/scripts/process_role_data.sh
+          
+          # Run the script with repo-data directory and working directory as arguments
+          .github/scripts/process_role_data.sh ./repo-data environments/project-iac-repo

@@ -1,0 +1,21 @@
+name: Run Terraform Plan
+
+on:
+  pull_request:
+    paths:
+      - '**/*.tf'
+      - '**/*.tfvars'
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  terraform-plan:
+    name: Terraform Plan, Validate, and Comment for the main environment
+    uses: ./.github/workflows/terraform-init-validate-plan-comment.yml
+    with:
+      working-directory: 'environments/main'
+      var-file-path: 'config/projects.tfvars'
+    secrets: inherit
