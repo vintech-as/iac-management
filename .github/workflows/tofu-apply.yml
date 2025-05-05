@@ -90,15 +90,15 @@ jobs:
       - name: Get OpenTofu Outputs for Bootstrapping accounts
         working-directory: environments/main
         run: |
-          mkdir -p /tmp/tofu-outputs
+          mkdir -p /tmp/bootstrap-configs
           bootstrap_configs=$(tofu output)
-          echo "bootstrap_configs = ${bootstrap_configs}" > /tmp/tofu-outputs/bootstrap_configs.tfvars
+          echo "bootstrap_configs = ${bootstrap_configs}" > /tmp/bootstrap-configs/terraform.tfvars
 
       - name: Upload bootstrap tfvars file
         uses: actions/upload-artifact@v4
         with:
           name: bootstrap-configs-tfvars
-          path: /tmp/tofu-outputs/bootstrap_configs.tfvars
+          path: /tmp/bootstrap-configs
           overwrite: true
           retention-days: 1
 
@@ -124,7 +124,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: bootstrap-configs-tfvars
-          path: ./environments/bootstrap/terraform.tfvars
+          path: ./environments/bootstrap
 
       - name: Bootstrap Resources via OpenTofu
         working-directory: environments/bootstrap
@@ -138,15 +138,15 @@ jobs:
       - name: Get OpenTofu Outputs for creating IaC repos
         working-directory: environments/bootstrap
         run: |
-          mkdir -p /tmp/tofu-outputs
+          mkdir -p /tmp/iac-repo-configs
           iac_repo_configs=$(tofu output)
-          echo "bootstrap_configs = ${iac_repo_configs}" > /tmp/tofu-outputs/iac_repo_configs.tfvars
+          echo "bootstrap_configs = ${iac_repo_configs}" > /tmp/iac-repo-configs/terraform.tfvars
 
       - name: Upload IaC repo configs
         uses: actions/upload-artifact@v4
         with:
           name: iac-repo-configs-tfvars
-          path: /tmp/tofu-outputs/iac_repo_configs.tfvars
+          path: /tmp/iac-repo-configs
           overwrite: true
           retention-days: 1
 
@@ -183,7 +183,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: iac-repo-configs-tfvars
-          path: ./environments/project-iac-repo/terraform.tfvars
+          path: ./environments/project-iac-repo
 
       - name: Setup OpenTofu
         uses: opentofu/setup-opentofu@v1
@@ -192,4 +192,3 @@ jobs:
         run: |
           tofu init
           tofu apply -auto-approve
-          
