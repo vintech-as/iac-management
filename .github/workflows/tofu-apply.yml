@@ -92,7 +92,7 @@ jobs:
         run: |
           mkdir -p /tmp/bootstrap-configs
           bootstrap_configs=$(tofu output)
-          echo "bootstrap_configs = ${bootstrap_configs}" > /tmp/bootstrap-configs/terraform.tfvars
+          echo "${bootstrap_configs}" > /tmp/bootstrap-configs/terraform.tfvars
 
       - name: Upload bootstrap tfvars file
         uses: actions/upload-artifact@v4
@@ -140,7 +140,7 @@ jobs:
         run: |
           mkdir -p /tmp/iac-repo-configs
           iac_repo_configs=$(tofu output)
-          echo "bootstrap_configs = ${iac_repo_configs}" > /tmp/iac-repo-configs/terraform.tfvars
+          echo "${iac_repo_configs}" > /tmp/iac-repo-configs/terraform.tfvars
 
       - name: Upload IaC repo configs
         uses: actions/upload-artifact@v4
