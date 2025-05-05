@@ -4,10 +4,11 @@ variable "organization_name" {
   default     = "vintech-as"
 }
 
-variable "repository_configs" {
-  description = "List of repository configurations"
-  type = list(object({
-    iac_repo_name         = string
-    environment_role_arns = map(string)
+variable "iac_repo_configs" {
+  description = "Map of repository configurations"
+  type = map(object({
+    environment   = string
+    iac_repo_name = string
+    iac_role_arn  = string
   }))
 }

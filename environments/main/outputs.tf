@@ -11,7 +11,7 @@ output "bootstrap_configs" {
           }
         ]
       ]) : tuple.iac_repo_name => tuple...
-    } : {
+      } : {
       iac_repo_name = repo_name
       environment_to_account_ids = {
         for tuple in tuples : tuple.environment => tuple.account_id
