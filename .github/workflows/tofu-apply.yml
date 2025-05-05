@@ -15,8 +15,9 @@ permissions:
   pull-requests: write
 
 jobs:
-  tofu-plan:
-    name: OpenTofu Plan, Validate, and Comment for the main environment
+  # ----- MAIN ENVIRONMENT -----
+  tofu-plan-main:
+    name: OpenTofu Plan for Main Environment
     uses: ./.github/workflows/tofu-init-validate-plan-comment.yml
     with:
       working-directory: "environments/main"
@@ -24,12 +25,11 @@ jobs:
       skip-comment: true
     secrets: inherit
 
-  manual-approval:
-    name: Manual Approval
+  tofu-manual-approve-main:
+    name: Manual Approval for Main Environment
     runs-on: ubuntu-latest
-    needs: tofu-plan
+    needs: tofu-plan-main
     if: success()
-
     permissions:
       issues: write
 
@@ -40,13 +40,13 @@ jobs:
           secret: ${{ github.TOKEN }}
           approvers: haraldvinje
           minimum-approvals: 1
-          issue-title: "Manual Approval Required for OpenTofu Apply"
-          issue-body: "Please approve or deny the deployment."
+          issue-title: "Manual Approval Required for Main Environment"
+          issue-body: "Please approve or deny the deployment to the main environment."
 
-  tofu-apply:
-    name: OpenTofu Apply
+  tofu-apply-main:
+    name: OpenTofu Apply for Main Environment
     runs-on: ubuntu-latest
-    needs: manual-approval
+    needs: tofu-manual-approve-main
     if: github.ref == 'refs/heads/master'
 
     steps:
@@ -102,10 +102,63 @@ jobs:
           overwrite: true
           retention-days: 1
 
-  bootstrap-accounts:
-    name: Bootstrap Accounts
+  # ----- BOOTSTRAP ACCOUNTS -----
+  tofu-plan-bootstrap:
+    name: OpenTofu Plan for Bootstrap Accounts
+    needs: tofu-apply-main
     runs-on: ubuntu-latest
-    needs: tofu-apply
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: eu-west-1
+
+      - name: Download bootstrap tfvars
+        uses: actions/download-artifact@v4
+        with:
+          name: bootstrap-configs-tfvars
+          path: ./environments/bootstrap
+
+      - name: OpenTofu Plan
+        working-directory: environments/bootstrap
+        run: |
+          # Wait for the main environment to be fully provisioned, specifically AWS accounts
+          sleep 30
+
+          tofu init
+          tofu validate -no-color
+          tofu plan -no-color
+
+  tofu-manual-approve-bootstrap:
+    name: Manual Approval for Bootstrap Accounts
+    runs-on: ubuntu-latest
+    needs: tofu-plan-bootstrap
+    if: success()
+    permissions:
+      issues: write
+
+    steps:
+      - name: Await Manual Approval
+        uses: trstringer/manual-approval@v1
+        with:
+          secret: ${{ github.TOKEN }}
+          approvers: haraldvinje
+          minimum-approvals: 1
+          issue-title: "Manual Approval Required for Bootstrap Accounts"
+          issue-body: "Please approve or deny the deployment to bootstrap accounts."
+
+  tofu-apply-bootstrap:
+    name: OpenTofu Apply for Bootstrap Accounts
+    runs-on: ubuntu-latest
+    needs: [tofu-manual-approve-bootstrap, tofu-apply-main]
+    if: github.ref == 'refs/heads/master'
 
     steps:
       - name: Checkout code
@@ -129,9 +182,6 @@ jobs:
       - name: Bootstrap Resources via OpenTofu
         working-directory: environments/bootstrap
         run: |
-          # echo "Waiting for account to become available (60s)..."
-          sleep 60
-
           tofu init
           tofu apply -auto-approve
 
@@ -150,10 +200,74 @@ jobs:
           overwrite: true
           retention-days: 1
 
-  project-iac-repo:
-    name: Project IaC Repo
+  # ----- PROJECT IAC REPOS -----
+  tofu-plan-project-iac-repo:
+    name: OpenTofu Plan for Project IAC Repos
+    needs: tofu-apply-bootstrap
     runs-on: ubuntu-latest
-    needs: [tofu-apply, bootstrap-accounts]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup OpenTofu
+        uses: opentofu/setup-opentofu@v1
+
+      - name: Generate GitHub App token
+        id: generate_token
+        uses: tibdex/github-app-token@v2
+        with:
+          app_id: ${{ secrets.GH_APP_ID }}
+          private_key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+
+      - name: Set Access Token as Environment Variable
+        env:
+          GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
+        run: |
+          echo "Setting up the GitHub App token as an environment variable..."
+          echo "GH_TOKEN=${GITHUB_TOKEN}" >> $GITHUB_ENV
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: eu-west-1
+
+      - name: Download IaC repo configs
+        uses: actions/download-artifact@v4
+        with:
+          name: iac-repo-configs-tfvars
+          path: ./environments/project-iac-repo
+
+      - name: OpenTofu Plan
+        working-directory: environments/project-iac-repo
+        run: |
+          tofu init
+          tofu validate -no-color
+          tofu plan -no-color
+    
+  tofu-manual-approve-project-iac-repo:
+    name: Manual Approval for Project IaC Repos
+    runs-on: ubuntu-latest
+    needs: tofu-plan-project-iac-repo
+    if: success()
+    permissions:
+      issues: write
+
+    steps:
+      - name: Await Manual Approval
+        uses: trstringer/manual-approval@v1
+        with:
+          secret: ${{ github.TOKEN }}
+          approvers: haraldvinje
+          minimum-approvals: 1
+          issue-title: "Manual Approval Required for Project IaC Repos"
+          issue-body: "Please approve or deny the deployment of project IaC repositories."
+
+  tofu-apply-project-iac-repo:
+    name: OpenTofu Apply for Project IaC Repos
+    runs-on: ubuntu-latest
+    needs: [tofu-manual-approve-project-iac-repo, tofu-apply-bootstrap]
+    if: github.ref == 'refs/heads/master'
 
     steps:
       - name: Checkout code
@@ -189,6 +303,7 @@ jobs:
         uses: opentofu/setup-opentofu@v1
 
       - name: Create Project IaC Repos via OpenTofu
+        working-directory: environments/project-iac-repo
         run: |
           tofu init
           tofu apply -auto-approve
