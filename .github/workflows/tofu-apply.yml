@@ -202,7 +202,7 @@ jobs:
 
   # ----- PROJECT IAC REPOS -----
   tofu-plan-project-iac-repo:
-    name: OpenTofu Plan for Project IAC Repos
+    name: OpenTofu Plan for Project IaC Repos
     needs: tofu-apply-bootstrap
     runs-on: ubuntu-latest
     steps:
