@@ -126,7 +126,7 @@ jobs:
           aws-region: eu-west-1
 
       - name: Download bootstrap tfvars
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: bootstrap-configs-tfvars
           path: ./environments/bootstrap
@@ -180,7 +180,7 @@ jobs:
           aws-region: eu-west-1
 
       - name: Download Bootstrap Configs
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: bootstrap-configs-tfvars
           path: ./environments/bootstrap
@@ -239,7 +239,7 @@ jobs:
           aws-region: eu-west-1
 
       - name: Download IaC repo configs
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: iac-repo-configs-tfvars
           path: ./environments/project-iac-repo
@@ -302,7 +302,7 @@ jobs:
           aws-region: eu-west-1
 
       - name: Download Role ARN Data
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: iac-repo-configs-tfvars
           path: ./environments/project-iac-repo
