@@ -48,17 +48,17 @@ To provision new AWS accounts and GitHub repos for a project:
    projects = {
      "existing-project" = {
        environments  = ["dev", "prod"]
-       code_repo_name = "existing-project"
+       code_repo_names = ["existing-project"]
      },
-     
+
      "new-project-name" = {
        environments  = ["dev", "prod", "stage"], # List of environments to create accounts for
-       code_repo_name = "custom-repo-name"       # Optional: defaults to project name if omitted
+       code_repo_names = ["custom-repo-name"]       # Optional: defaults to project name if omitted
      }
    }
 
 2. Each project entry will:
-   - Create an AWS account for each environment listed 
+   - Create an AWS account for each environment listed
    - Set up a GitHub code repository
    - Create an infrastructure as code (IaC) repository based on the [IaC project template repo](https://github.com/vintech-as/iac-project-template)
    - Bootstrap each account with a S3 bucket for OpenTofu state and a GitHub OIDC provider to make AWS accessible from the newly created IaC GitHub repo.

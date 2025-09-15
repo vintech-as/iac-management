@@ -13,8 +13,8 @@ variable "organization_domain" {
 variable "projects" {
   description = "Map of projects with their environments and repository information"
   type = map(object({
-    environments   = list(string)
-    code_repo_name = string
+    environments    = list(string)
+    code_repo_names = list(string)
   }))
 
   default = {}

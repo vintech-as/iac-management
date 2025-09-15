@@ -12,7 +12,7 @@ module "projects" {
   organization_domain = var.organization_domain
   environments        = each.value.environments
   use_code_repo       = lookup(each.value, "use_code_repo", true)
-  code_repo_name      = each.value.code_repo_name
+  code_repo_names     = each.value.code_repo_names
   parent_ou_id        = aws_organizations_organizational_unit.project_ou.id
 }
 

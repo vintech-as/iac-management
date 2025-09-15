@@ -15,8 +15,8 @@ variable "use_code_repo" {
   default = true
 }
 
-variable "code_repo_name" {
-  type = string
+variable "code_repo_names" {
+  type = list(string)
 }
 
 variable "parent_ou_id" {

@@ -18,12 +18,14 @@ resource "aws_organizations_account" "env_account" {
 }
 
 resource "github_repository" "code_repo" {
-  count = var.use_code_repo ? 1 : 0
+  for_each = var.use_code_repo ? toset(var.code_repo_names) : []
 
-  name          = var.code_repo_name != "" ? var.code_repo_name : var.project_name
+  name          = each.key
   description   = "Code repository for ${var.project_name}"
   visibility    = "private"
   has_issues    = true
   has_wiki      = false
   has_downloads = false
+
+  vulnerability_alerts = true
 }
