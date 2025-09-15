@@ -9,7 +9,6 @@ permissions:
   pull-requests: write
 
 env:
-  MANUAL_APPROVAL_TIMEOUT_MINUTES: 20
   MANUAL_APPROVAL_APPROVERS: haraldvinje
 
 jobs:
@@ -34,7 +33,7 @@ jobs:
     steps:
       - name: Await Manual Approval
         uses: trstringer/manual-approval@v1
-        timeout-minutes: ${{ env.MANUAL_APPROVAL_TIMEOUT_MINUTES }}
+        timeout-minutes: 20
         with:
           secret: ${{ github.TOKEN }}
           approvers: ${{ env.MANUAL_APPROVAL_APPROVERS }}
@@ -146,7 +145,7 @@ jobs:
     steps:
       - name: Await Manual Approval
         uses: trstringer/manual-approval@v1
-        timeout-minutes: ${{ env.MANUAL_APPROVAL_TIMEOUT_MINUTES }}
+        timeout-minutes: 20
         with:
           secret: ${{ github.TOKEN }}
           approvers: ${{ env.MANUAL_APPROVAL_APPROVERS }}
@@ -256,7 +255,7 @@ jobs:
     steps:
       - name: Await Manual Approval
         uses: trstringer/manual-approval@v1
-        timeout-minutes: ${{ env.MANUAL_APPROVAL_TIMEOUT_MINUTES }}
+        timeout-minutes: 20
         with:
           secret: ${{ github.TOKEN }}
           approvers: ${{ env.MANUAL_APPROVAL_APPROVERS }}
