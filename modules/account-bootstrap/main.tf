@@ -1,38 +1,3 @@
-resource "aws_s3_bucket" "tf_state" {
-  bucket = "${var.iac_repo_name}-tofu-state-${var.account_id}"
-
-  tags = {
-    Name        = "OpenTofu State Bucket"
-    Environment = var.environment
-  }
-}
-
-resource "aws_s3_bucket_versioning" "tf_state_versioning" {
-  bucket = aws_s3_bucket.tf_state.id
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
-
-resource "aws_s3_bucket_server_side_encryption_configuration" "tf_state_encryption" {
-  bucket = aws_s3_bucket.tf_state.id
-
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
-    }
-  }
-}
-
-resource "aws_s3_bucket_public_access_block" "tf_state_public_access_block" {
-  bucket = aws_s3_bucket.tf_state.id
-
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-
 resource "aws_iam_openid_connect_provider" "github" {
   url             = "https://token.actions.githubusercontent.com"
   client_id_list  = ["sts.amazonaws.com"]
@@ -66,4 +31,44 @@ resource "aws_iam_role" "github_oidc" {
 resource "aws_iam_role_policy_attachment" "attach_admin_policy" {
   role       = aws_iam_role.github_oidc.name
   policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
+}
+
+resource "aws_s3_bucket" "terraform_state" {
+  bucket = "${var.account_id}-${var.iac_repo_name}-terraform-state"
+
+  lifecycle {
+    prevent_destroy = true
+  }
+
+  tags = {
+    Name        = "Terraform State"
+    Environment = var.environment
+    Project     = var.iac_repo_name
+  }
+}
+
+resource "aws_s3_bucket_versioning" "versioning" {
+  bucket = aws_s3_bucket.terraform_state.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "encryption" {
+  bucket = aws_s3_bucket.terraform_state.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "block_public_access" {
+  bucket                  = aws_s3_bucket.terraform_state.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
 }
