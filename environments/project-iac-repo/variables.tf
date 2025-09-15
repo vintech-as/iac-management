@@ -5,10 +5,10 @@ variable "organization_name" {
 }
 
 variable "iac_repo_configs" {
-  description = "Map of repository configurations"
+  description = "Repository configurations grouped by repository name"
   type = map(object({
-    environment   = string
-    iac_repo_name = string
-    iac_role_arn  = string
+    repo_name    = string
+    environments = map(string) # Map of environment names to IAM role ARNs
   }))
+  default = {}
 }

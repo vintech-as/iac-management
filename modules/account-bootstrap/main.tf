@@ -34,7 +34,7 @@ resource "aws_iam_role_policy_attachment" "attach_admin_policy" {
 }
 
 resource "aws_s3_bucket" "terraform_state" {
-  bucket = "${var.account_id}-${var.iac_repo_name}-terraform-state"
+  bucket = "${var.account_id}-${var.iac_repo_name}-tf-state"
 
   lifecycle {
     prevent_destroy = true
