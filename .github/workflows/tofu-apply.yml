@@ -34,10 +34,10 @@ jobs:
     steps:
       - name: Await Manual Approval
         uses: trstringer/manual-approval@v1
+        timeout-minutes: ${{ env.MANUAL_APPORVAL_TIMEOUT_MINUTES }}
         with:
           secret: ${{ github.TOKEN }}
           approvers: ${{ env.MANUAL_APPROVAL_APPROVERS }}
-          timeout-minutes: ${{ env.MANUAL_APPORVAL_TIMEOUT_MINUTES }}
           minimum-approvals: 1
           issue-title: "Manual Approval Required for Main Environment"
           issue-body: "Please approve or deny the deployment to the main environment."
