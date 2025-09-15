@@ -34,7 +34,7 @@ jobs:
     steps:
       - name: Await Manual Approval
         uses: trstringer/manual-approval@v1
-        timeout-minutes: ${{ env.MANUAL_APPORVAL_TIMEOUT_MINUTES }}
+        timeout-minutes: ${{ env.MANUAL_APPROVAL_TIMEOUT_MINUTES }}
         with:
           secret: ${{ github.TOKEN }}
           approvers: ${{ env.MANUAL_APPROVAL_APPROVERS }}
@@ -50,7 +50,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Generate GitHub App token
         id: generate_token
@@ -108,7 +108,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup OpenTofu
         uses: opentofu/setup-opentofu@v1
@@ -120,7 +120,7 @@ jobs:
           aws-region: eu-west-1
 
       - name: Download bootstrap tfvars
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: bootstrap-configs-tfvars
           path: ./environments/bootstrap
@@ -233,7 +233,7 @@ jobs:
           aws-region: eu-west-1
 
       - name: Download IaC repo configs
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: iac-repo-configs-tfvars
           path: ./environments/project-iac-repo
@@ -272,7 +272,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Generate GitHub App token
         id: generate_token
@@ -295,7 +295,7 @@ jobs:
           aws-region: eu-west-1
 
       - name: Download Role ARN Data
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: iac-repo-configs-tfvars
           path: ./environments/project-iac-repo

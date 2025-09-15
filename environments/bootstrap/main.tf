@@ -9,6 +9,9 @@ locals {
     ]
   ])
 
+  all_account_ids = { for tuple in local.account_repo_tuples : tuple.account_id => tuple.account_id... }
+  provider_map    = { for account_id, _ in local.all_account_ids : account_id => account_id }
+
   bootstrap_map = {
     for tuple in local.account_repo_tuples :
     "${tuple.iac_repo_name}-${tuple.account_id}" => tuple
@@ -17,12 +20,17 @@ locals {
 
 provider "aws" {
   region = "eu-west-1"
-  alias  = "by_account"
+  alias  = "default"
+}
 
-  for_each = local.bootstrap_map
+provider "aws" {
+  region = "eu-west-1"
+
+  for_each = local.provider_map
+  alias    = "by_account"
 
   assume_role {
-    role_arn = "arn:aws:iam::${each.value.account_id}:role/OrganizationAccountAccessRole"
+    role_arn = "arn:aws:iam::${each.key}:role/OrganizationAccountAccessRole"
   }
 }
 
@@ -35,4 +43,7 @@ module "account_bootstrap" {
   organization_name = var.organization_name
   iac_repo_name     = each.value.iac_repo_name
   environment       = each.value.environment
+  providers = {
+    aws = aws.by_account[each.value.account_id]
+  }
 }
