@@ -2,12 +2,6 @@ name: OpenTofu Apply
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - master
-    paths:
-      - "**/*.tf"
-      - "**/*.tfvars"
 
 permissions:
   id-token: write
@@ -15,7 +9,7 @@ permissions:
   pull-requests: write
 
 env:
-  MANUAL_APPORVAL_TIMEOUT_MINUTES: 20
+  MANUAL_APPROVAL_TIMEOUT_MINUTES: 20
   MANUAL_APPROVAL_APPROVERS: haraldvinje
 
 jobs:
@@ -152,10 +146,10 @@ jobs:
     steps:
       - name: Await Manual Approval
         uses: trstringer/manual-approval@v1
+        timeout-minutes: ${{ env.MANUAL_APPROVAL_TIMEOUT_MINUTES }}
         with:
           secret: ${{ github.TOKEN }}
           approvers: ${{ env.MANUAL_APPROVAL_APPROVERS }}
-          timeout-minutes: ${{ env.MANUAL_APPORVAL_TIMEOUT_MINUTES }}
           minimum-approvals: 1
           issue-title: "Manual Approval Required for Bootstrap Accounts"
           issue-body: "Please approve or deny the deployment to bootstrap accounts."
@@ -168,7 +162,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup OpenTofu
         uses: opentofu/setup-opentofu@v1
@@ -180,7 +174,7 @@ jobs:
           aws-region: eu-west-1
 
       - name: Download Bootstrap Configs
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: bootstrap-configs-tfvars
           path: ./environments/bootstrap
@@ -213,7 +207,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup OpenTofu
         uses: opentofu/setup-opentofu@v1
@@ -250,7 +244,7 @@ jobs:
           tofu init
           tofu validate -no-color
           tofu plan -no-color
-    
+
   tofu-manual-approve-project-iac-repo:
     name: Manual Approval for Project IaC Repos
     runs-on: ubuntu-latest
@@ -262,11 +256,10 @@ jobs:
     steps:
       - name: Await Manual Approval
         uses: trstringer/manual-approval@v1
-        timeout-minutes: 20
+        timeout-minutes: ${{ env.MANUAL_APPROVAL_TIMEOUT_MINUTES }}
         with:
           secret: ${{ github.TOKEN }}
           approvers: ${{ env.MANUAL_APPROVAL_APPROVERS }}
-          timeout-minutes: ${{ env.MANUAL_APPORVAL_TIMEOUT_MINUTES }}
           minimum-approvals: 1
           issue-title: "Manual Approval Required for Project IaC Repos"
           issue-body: "Please approve or deny the deployment of project IaC repositories."
