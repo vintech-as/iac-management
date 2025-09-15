@@ -11,12 +11,14 @@ variable "environments" {
 }
 
 variable "use_code_repo" {
-  type    = bool
-  default = true
+  description = "Whether to create code repositories"
+  type        = bool
+  default     = true
 }
 
 variable "code_repo_names" {
-  type = list(string)
+  description = "List of names for the code repositories"
+  type        = list(string)
 }
 
 variable "parent_ou_id" {
