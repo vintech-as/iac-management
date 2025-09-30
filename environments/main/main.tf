@@ -19,6 +19,6 @@ module "projects" {
 resource "github_repository" "iac_project_template" {
   name        = "iac-project-template"
   description = "Template repository for new IaC projects"
-  visibility  = "private"
+  visibility  = "public"
   is_template = true
 }
