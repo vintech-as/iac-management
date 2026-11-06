@@ -4,11 +4,16 @@ resource "aws_organizations_organization" "org" {
   feature_set = "ALL"
 
   aws_service_access_principals = [
-    "iam.amazonaws.com", # centralized root access management
-    "sso.amazonaws.com", # IAM Identity Center
+    "access-analyzer.amazonaws.com", # org-wide external access analyzer
+    "account.amazonaws.com",         # manage alternate contacts centrally
+    "cloudtrail.amazonaws.com",      # organization trail
+    "iam.amazonaws.com",             # centralized root access management
+    "sso.amazonaws.com",             # IAM Identity Center
   ]
 
-  enabled_policy_types = []
+  # Enabling SCPs automatically attaches the AWS-managed FullAWSAccess policy
+  # to the root, every OU and every account; custom SCPs then only deny.
+  enabled_policy_types = ["SERVICE_CONTROL_POLICY"]
 
   lifecycle {
     prevent_destroy = true

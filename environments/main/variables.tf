@@ -19,3 +19,33 @@ variable "projects" {
 
   default = {}
 }
+
+variable "notification_email" {
+  description = "Email for budget alerts and alternate contacts"
+  type        = string
+  default     = "harald@vintech.no"
+}
+
+variable "contact_name" {
+  description = "Name used for account alternate contacts"
+  type        = string
+  default     = "Harald Vinje"
+}
+
+variable "contact_phone" {
+  description = "Phone number for account alternate contacts. Set via TF_VAR_contact_phone (GitHub secret SECURITY_CONTACT_PHONE); never commit it, this repo is public."
+  type        = string
+  sensitive   = true
+}
+
+variable "org_monthly_budget_usd" {
+  description = "Monthly cost budget for the whole organization, in USD"
+  type        = string
+  default     = "25"
+}
+
+variable "cloudtrail_retention_days" {
+  description = "Days to keep organization CloudTrail logs before expiry"
+  type        = number
+  default     = 365
+}
