@@ -31,10 +31,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: arn:aws:iam::061286906622:role/GitHubActionsDeployRole
           role-session-name: GitHubActionsSession
@@ -42,7 +42,7 @@ jobs:
 
       - name: Generate GitHub App token
         id: generate_token
-        uses: actions/create-github-app-token@v3
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           app-id: ${{ secrets.GH_APP_ID }}
           private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
@@ -53,7 +53,7 @@ jobs:
         run: echo "GH_TOKEN=${{ steps.generate_token.outputs.token }}" >> "$GITHUB_ENV"
 
       - name: Setup OpenTofu
-        uses: opentofu/setup-opentofu@v2
+        uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
         with:
           tofu_version_file: .tool-versions
 
@@ -84,7 +84,7 @@ jobs:
           fi
 
       - name: Comment Plan on PR
-        uses: mshick/add-pr-comment@v2
+        uses: mshick/add-pr-comment@b8f338c590a895d50bcbfa6c5859251edc8952fc # v2.8.2
         if: ${{ !inputs.skip-comment && github.event_name == 'pull_request' }}
         with:
           message-path: ${{ inputs.working-directory }}/plan.txt
