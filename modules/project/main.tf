@@ -28,3 +28,14 @@ resource "github_repository" "code_repo" {
 
   vulnerability_alerts = true
 }
+
+resource "aws_ssoadmin_account_assignment" "admins" {
+  for_each = aws_organizations_account.env_account
+
+  instance_arn       = var.sso_instance_arn
+  permission_set_arn = var.admin_permission_set_arn
+  principal_type     = "GROUP"
+  principal_id       = var.admin_group_id
+  target_type        = "AWS_ACCOUNT"
+  target_id          = each.value.id
+}

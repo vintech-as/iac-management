@@ -24,3 +24,17 @@ variable "code_repo_names" {
 variable "parent_ou_id" {
   type = string
 }
+variable "sso_instance_arn" {
+  description = "IAM Identity Center instance ARN"
+  type        = string
+}
+
+variable "admin_permission_set_arn" {
+  description = "Permission set assigned to the admin group in every environment account"
+  type        = string
+}
+
+variable "admin_group_id" {
+  description = "Identity Center group that gets admin access to every environment account"
+  type        = string
+}

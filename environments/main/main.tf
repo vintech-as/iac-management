@@ -1,7 +1,6 @@
-data "aws_organizations_organization" "org" {}
 resource "aws_organizations_organizational_unit" "project_ou" {
   name      = "projects"
-  parent_id = data.aws_organizations_organization.org.roots[0].id
+  parent_id = aws_organizations_organization.org.roots[0].id
 }
 
 module "projects" {
@@ -14,6 +13,10 @@ module "projects" {
   use_code_repo       = lookup(each.value, "use_code_repo", true)
   code_repo_names     = each.value.code_repo_names
   parent_ou_id        = aws_organizations_organizational_unit.project_ou.id
+
+  sso_instance_arn         = local.sso_instance_arn
+  admin_permission_set_arn = aws_ssoadmin_permission_set.administrator_access.arn
+  admin_group_id           = aws_identitystore_group.administrators.group_id
 }
 
 resource "github_repository" "iac_project_template" {
