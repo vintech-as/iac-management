@@ -5,6 +5,9 @@ on:
     paths:
       - '**/*.tf'
       - '**/*.tfvars'
+      - '**/.terraform.lock.hcl'
+      - '.tool-versions'
+      - '.github/workflows/**'
 
 permissions:
   id-token: write

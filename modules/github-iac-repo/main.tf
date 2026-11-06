@@ -1,10 +1,9 @@
 resource "github_repository" "iac_repo" {
-  name          = var.iac_repo_name
-  description   = "Infrastructure as Code repository"
-  visibility    = "private"
-  has_issues    = true
-  has_wiki      = false
-  has_downloads = false
+  name        = var.iac_repo_name
+  description = "Infrastructure as Code repository"
+  visibility  = "private"
+  has_issues  = true
+  has_wiki    = false
 
   template {
     owner      = var.organization_name
