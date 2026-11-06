@@ -41,11 +41,23 @@ variable "contact_phone" {
 variable "org_monthly_budget_usd" {
   description = "Monthly cost budget for the whole organization, in USD"
   type        = string
-  default     = "25"
+  default     = "150"
 }
 
 variable "cloudtrail_retention_days" {
   description = "Days to keep organization CloudTrail logs before expiry"
   type        = number
   default     = 365
+}
+
+variable "sandbox_budget_alerts_usd" {
+  description = "Actual-spend email alert thresholds for the sandbox account, in USD"
+  type        = list(number)
+  default     = [30, 50]
+}
+
+variable "sandbox_budget_hard_stop_usd" {
+  description = "Monthly sandbox spend (USD) at which the sandbox-freeze SCP is attached automatically"
+  type        = string
+  default     = "100"
 }

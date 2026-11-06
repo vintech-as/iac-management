@@ -10,7 +10,7 @@ locals {
   ]...)
 
   # null account_id = the management account itself
-  contact_accounts = merge({ management = null }, local.member_account_ids)
+  contact_accounts = merge({ management = null, sandbox = aws_organizations_account.sandbox.id }, local.member_account_ids)
 
   alternate_contacts = merge([
     for account_key, account_id in local.contact_accounts : {
