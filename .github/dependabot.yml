@@ -9,9 +9,16 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    groups:
+      github-actions:
+        patterns: ["*"]
 
+  # OpenTofu providers. Dependabot's terraform ecosystem also understands OpenTofu
+  # configs and updates the committed .terraform.lock.hcl files.
   - package-ecosystem: "terraform"
-    directory: "environments/main"
+    directories:
+      - "/environments/*"
+      - "/modules/*"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -19,23 +26,6 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
-
-  - package-ecosystem: "terraform"
-    directory: "environments/bootstrap"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "06:00"
-    commit-message:
-      prefix: "chore"
-      include: "scope"
-
-  - package-ecosystem: "terraform"
-    directory: "environments/project-iac-repo"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "06:00"
-    commit-message:
-      prefix: "chore"
-      include: "scope"
+    groups:
+      tofu-providers:
+        patterns: ["*"]

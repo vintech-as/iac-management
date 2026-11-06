@@ -20,12 +20,11 @@ resource "aws_organizations_account" "env_account" {
 resource "github_repository" "code_repo" {
   for_each = var.use_code_repo ? toset(var.code_repo_names) : []
 
-  name          = each.key
-  description   = "Code repository for ${var.project_name}"
-  visibility    = "private"
-  has_issues    = true
-  has_wiki      = false
-  has_downloads = false
+  name        = each.key
+  description = "Code repository for ${var.project_name}"
+  visibility  = "private"
+  has_issues  = true
+  has_wiki    = false
 
   vulnerability_alerts = true
 }
