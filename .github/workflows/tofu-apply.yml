@@ -76,6 +76,8 @@ jobs:
 
       - name: OpenTofu Init, Plan and Apply
         working-directory: environments/main
+        env:
+          TF_VAR_contact_phone: ${{ secrets.SECURITY_CONTACT_PHONE }}
         run: |
           tofu init
           tofu validate -no-color

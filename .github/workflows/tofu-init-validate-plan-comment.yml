@@ -68,6 +68,8 @@ jobs:
       - name: OpenTofu Plan
         id: plan
         working-directory: ${{ inputs.working-directory }}
+        env:
+          TF_VAR_contact_phone: ${{ secrets.SECURITY_CONTACT_PHONE }}
         run: |
           tofu plan \
             -var-file="${GITHUB_WORKSPACE}/${{ inputs.var-file-path }}" \
