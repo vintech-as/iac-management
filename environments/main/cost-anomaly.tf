@@ -23,9 +23,10 @@ resource "aws_ce_anomaly_monitor" "sandbox" {
       MatchOptions = null
       Values       = [aws_organizations_account.sandbox.id]
     }
-    Not  = null
-    Or   = null
-    Tags = null
+    Not               = null
+    Or                = null
+    ProductAttributes = null
+    Tags              = null
   })
 }
 
