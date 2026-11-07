@@ -5,6 +5,8 @@ resource "github_repository" "iac_repo" {
   has_issues  = true
   has_wiki    = false
 
+  delete_branch_on_merge = true
+
   template {
     owner      = var.organization_name
     repository = "iac-project-template"

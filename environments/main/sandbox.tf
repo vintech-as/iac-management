@@ -113,6 +113,8 @@ resource "github_repository" "sandbox" {
   has_issues  = true
   has_wiki    = false
   auto_init   = true
+
+  delete_branch_on_merge = true
 }
 
 # ---------------------------------------------------------------------------

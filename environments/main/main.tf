@@ -24,4 +24,6 @@ resource "github_repository" "iac_project_template" {
   description = "Template repository for new IaC projects"
   visibility  = "public"
   is_template = true
+
+  delete_branch_on_merge = true
 }

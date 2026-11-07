@@ -38,6 +38,12 @@ variable "contact_phone" {
   sensitive   = true
 }
 
+variable "cost_anomaly_threshold_usd" {
+  description = "Minimum total impact, in USD, for a cost anomaly to be emailed"
+  type        = number
+  default     = 10
+}
+
 variable "org_monthly_budget_usd" {
   description = "Monthly cost budget for the whole organization, in USD"
   type        = string
