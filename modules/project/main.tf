@@ -26,7 +26,14 @@ resource "github_repository" "code_repo" {
   has_issues  = true
   has_wiki    = false
 
-  vulnerability_alerts = true
+  delete_branch_on_merge = true
+}
+
+resource "github_repository_vulnerability_alerts" "code_repo" {
+  for_each = var.use_code_repo ? toset(var.code_repo_names) : []
+
+  repository = github_repository.code_repo[each.key].name
+  enabled    = true
 }
 
 resource "aws_ssoadmin_account_assignment" "admins" {
