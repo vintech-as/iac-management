@@ -9,6 +9,12 @@ variable "organization_name" {
   default     = "vintech-as"
 }
 
+variable "organization_id" {
+  description = "Numeric GitHub organization ID, used in ID-based OIDC subjects"
+  type        = string
+  default     = "209782940"
+}
+
 variable "iac_repo_name" {
   description = "The name of the IaC repository for the project"
   type        = string

@@ -18,7 +18,12 @@ resource "aws_iam_role" "github_oidc" {
       Action = "sts:AssumeRoleWithWebIdentity"
       Condition = {
         StringLike = {
-          "token.actions.githubusercontent.com:sub" = "repo:${var.organization_name}/${var.iac_repo_name}:*"
+          # Newer GitHub repos send an ID-based subject. The repo ID is a wildcard
+          # because the repo is created after this role.
+          "token.actions.githubusercontent.com:sub" = [
+            "repo:${var.organization_name}/${var.iac_repo_name}:*",
+            "repo:${var.organization_name}@${var.organization_id}/${var.iac_repo_name}@*:*",
+          ]
         }
         StringEquals = {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
