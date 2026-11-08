@@ -26,7 +26,21 @@ resource "github_repository" "code_repo" {
   has_issues  = true
   has_wiki    = false
 
+  # New repos need a first commit: the default branch rules block pushing one.
+  auto_init = true
+
   delete_branch_on_merge = true
+
+  lifecycle {
+    ignore_changes = [auto_init]
+  }
+}
+
+module "code_repo_rules" {
+  source   = "../github-default-branch-rules"
+  for_each = var.use_code_repo ? toset(var.code_repo_names) : []
+
+  repository = github_repository.code_repo[each.key].name
 }
 
 resource "github_repository_vulnerability_alerts" "code_repo" {
