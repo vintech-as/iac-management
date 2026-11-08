@@ -117,6 +117,14 @@ resource "github_repository" "sandbox" {
   delete_branch_on_merge = true
 }
 
+# Experiments are pushed straight to the default branch.
+module "sandbox_repo_rules" {
+  source = "./../../modules/github-default-branch-rules"
+
+  repository           = github_repository.sandbox.name
+  require_pull_request = false
+}
+
 # ---------------------------------------------------------------------------
 # SCPs (split by concern; each stays well under the 5120 character SCP limit)
 # ---------------------------------------------------------------------------

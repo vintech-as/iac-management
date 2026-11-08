@@ -27,3 +27,16 @@ resource "github_repository" "iac_project_template" {
 
   delete_branch_on_merge = true
 }
+
+module "iac_project_template_rules" {
+  source = "./../../modules/github-default-branch-rules"
+
+  repository = github_repository.iac_project_template.name
+}
+
+# This repository isn't itself managed here, so it's referenced by name.
+module "iac_management_rules" {
+  source = "./../../modules/github-default-branch-rules"
+
+  repository = "iac-management"
+}

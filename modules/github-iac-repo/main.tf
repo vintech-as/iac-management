@@ -13,6 +13,12 @@ resource "github_repository" "iac_repo" {
   }
 }
 
+module "default_branch_rules" {
+  source = "../github-default-branch-rules"
+
+  repository = github_repository.iac_repo.name
+}
+
 resource "github_repository_environment" "aws_environments" {
   for_each = var.environment_role_arns
 
