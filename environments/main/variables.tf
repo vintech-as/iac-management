@@ -15,6 +15,8 @@ variable "projects" {
   type = map(object({
     environments    = list(string)
     code_repo_names = list(string)
+
+    code_repo_required_checks = optional(map(list(string)), {})
   }))
 
   default = {}

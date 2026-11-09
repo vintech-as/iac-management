@@ -63,6 +63,8 @@ To provision new AWS accounts and GitHub repos for a project:
    - Create an infrastructure as code (IaC) repository based on the [IaC project template repo](https://github.com/vintech-as/iac-project-template)
    - Bootstrap each account with a S3 bucket for OpenTofu state and a GitHub OIDC provider to make AWS accessible from the newly created IaC GitHub repo.
 
+3. Optionally, add `code_repo_required_checks = { "repo-name" = ["Check name"] }` to require status checks before merging to a code repository's default branch. Add it after the check has run at least once, so the name matches the job name in the workflow.
+
 ## Removing Projects
 
 Removing a project requires removing the entry in `config/projects.tfvars`, as well as some manual steps:
