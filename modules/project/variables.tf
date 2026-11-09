@@ -21,6 +21,12 @@ variable "code_repo_names" {
   type        = list(string)
 }
 
+variable "code_repo_required_checks" {
+  description = "Status checks that must pass before merging, by code repository name"
+  type        = map(list(string))
+  default     = {}
+}
+
 variable "parent_ou_id" {
   type = string
 }

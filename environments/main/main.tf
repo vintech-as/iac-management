@@ -17,6 +17,8 @@ module "projects" {
   sso_instance_arn         = local.sso_instance_arn
   admin_permission_set_arn = aws_ssoadmin_permission_set.administrator_access.arn
   admin_group_id           = aws_identitystore_group.administrators.group_id
+
+  code_repo_required_checks = each.value.code_repo_required_checks
 }
 
 resource "github_repository" "iac_project_template" {

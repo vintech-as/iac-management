@@ -40,7 +40,8 @@ module "code_repo_rules" {
   source   = "../github-default-branch-rules"
   for_each = var.use_code_repo ? toset(var.code_repo_names) : []
 
-  repository = github_repository.code_repo[each.key].name
+  repository      = github_repository.code_repo[each.key].name
+  required_checks = lookup(var.code_repo_required_checks, each.key, [])
 }
 
 resource "github_repository_vulnerability_alerts" "code_repo" {

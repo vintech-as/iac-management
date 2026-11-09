@@ -23,5 +23,21 @@ resource "github_repository_ruleset" "default_branch" {
         required_approving_review_count = 0
       }
     }
+
+    dynamic "required_status_checks" {
+      for_each = length(var.required_checks) > 0 ? [1] : []
+      content {
+        # Requiring an up-to-date branch would hold back automerged dependency
+        # updates, and a single maintainer rarely has competing pull requests.
+        strict_required_status_checks_policy = false
+
+        dynamic "required_check" {
+          for_each = toset(var.required_checks)
+          content {
+            context = required_check.value
+          }
+        }
+      }
+    }
   }
 }

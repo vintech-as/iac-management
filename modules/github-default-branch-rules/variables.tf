@@ -8,3 +8,9 @@ variable "require_pull_request" {
   type        = bool
   default     = true
 }
+
+variable "required_checks" {
+  description = "Names of the status checks that must pass before merging to the default branch"
+  type        = list(string)
+  default     = []
+}
