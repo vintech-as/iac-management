@@ -54,3 +54,36 @@ resource "aws_ssoadmin_account_assignment" "management_administrators" {
   target_type        = "AWS_ACCOUNT"
   target_id          = aws_organizations_organization.org.master_account_id
 }
+
+# Read-only access for project developers, coding agents included. ViewOnlyAccess
+# shows resources and settings but no data. Each project account adds what its
+# developers need through a policy named developer-access, defined in the
+# project's own IaC repo, so it must exist there before a project is assigned.
+resource "aws_ssoadmin_permission_set" "developer" {
+  instance_arn     = local.sso_instance_arn
+  name             = "Developer"
+  description      = "View-only access plus the project's developer-access policy"
+  session_duration = "PT4H"
+}
+
+resource "aws_ssoadmin_managed_policy_attachment" "developer_view_only" {
+  instance_arn       = local.sso_instance_arn
+  permission_set_arn = aws_ssoadmin_permission_set.developer.arn
+  managed_policy_arn = "arn:aws:iam::aws:policy/job-function/ViewOnlyAccess"
+}
+
+resource "aws_ssoadmin_customer_managed_policy_attachment" "developer_project_access" {
+  instance_arn       = local.sso_instance_arn
+  permission_set_arn = aws_ssoadmin_permission_set.developer.arn
+
+  customer_managed_policy_reference {
+    name = "developer-access"
+  }
+}
+
+# Users a project can list as developers in config/projects.tfvars.
+locals {
+  identity_users = {
+    (aws_identitystore_user.harald.user_name) = aws_identitystore_user.harald.user_id
+  }
+}

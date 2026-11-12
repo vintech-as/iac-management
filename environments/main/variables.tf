@@ -17,6 +17,9 @@ variable "projects" {
     code_repo_names = list(string)
 
     code_repo_required_checks = optional(map(list(string)), {})
+
+    # Identity Center user names that get the Developer permission set in every environment account.
+    developers = optional(list(string), [])
   }))
 
   default = {}

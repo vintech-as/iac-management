@@ -8,5 +8,7 @@ projects = {
     code_repo_names = ["vintech-hub"]
 
     code_repo_required_checks = { "vintech-hub" = ["Verify"] }
+
+    developers = ["haraldvinje"]
   }
 }
