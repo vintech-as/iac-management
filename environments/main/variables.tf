@@ -18,6 +18,12 @@ variable "projects" {
 
     code_repo_required_checks = optional(map(list(string)), {})
 
+    # Stricter merge rules, by code repository name. Both are off unless set.
+    code_repo_branch_rules = optional(map(object({
+      require_up_to_date_branch       = optional(bool, false)
+      require_conversation_resolution = optional(bool, false)
+    })), {})
+
     # Identity Center user names that get the Developer permission set in every environment account.
     developers = optional(list(string), [])
   }))

@@ -42,6 +42,9 @@ module "code_repo_rules" {
 
   repository      = github_repository.code_repo[each.key].name
   required_checks = lookup(var.code_repo_required_checks, each.key, [])
+
+  require_up_to_date_branch       = try(var.code_repo_branch_rules[each.key].require_up_to_date_branch, false)
+  require_conversation_resolution = try(var.code_repo_branch_rules[each.key].require_conversation_resolution, false)
 }
 
 resource "github_repository_vulnerability_alerts" "code_repo" {

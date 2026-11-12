@@ -27,6 +27,15 @@ variable "code_repo_required_checks" {
   default     = {}
 }
 
+variable "code_repo_branch_rules" {
+  description = "Stricter merge rules, by code repository name"
+  type = map(object({
+    require_up_to_date_branch       = optional(bool, false)
+    require_conversation_resolution = optional(bool, false)
+  }))
+  default = {}
+}
+
 variable "parent_ou_id" {
   type = string
 }

@@ -8,6 +8,9 @@ projects = {
     code_repo_names = ["vintech-hub"]
 
     code_repo_required_checks = { "vintech-hub" = ["Verify"] }
+    code_repo_branch_rules = {
+      "vintech-hub" = { require_up_to_date_branch = true, require_conversation_resolution = true }
+    }
 
     developers = ["haraldvinje"]
   }
