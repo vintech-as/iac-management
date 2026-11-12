@@ -19,6 +19,11 @@ module "projects" {
   admin_group_id           = aws_identitystore_group.administrators.group_id
 
   code_repo_required_checks = each.value.code_repo_required_checks
+  code_repo_branch_rules    = each.value.code_repo_branch_rules
+
+  identity_store_id            = local.identity_store_id
+  developer_permission_set_arn = aws_ssoadmin_permission_set.developer.arn
+  developer_users              = { for name in each.value.developers : name => local.identity_users[name] }
 }
 
 resource "github_repository" "iac_project_template" {

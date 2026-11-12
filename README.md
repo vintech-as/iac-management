@@ -65,6 +65,10 @@ To provision new AWS accounts and GitHub repos for a project:
 
 3. Optionally, add `code_repo_required_checks = { "repo-name" = ["Check name"] }` to require status checks before merging to a code repository's default branch. Add it after the check has run at least once, so the name matches the job name in the workflow.
 
+4. Optionally, add `code_repo_branch_rules = { "repo-name" = { require_up_to_date_branch = true, require_conversation_resolution = true } }` for stricter merges. Both are off by default. An up-to-date requirement holds back automerged dependency updates until they're rebased.
+
+5. Optionally, add `developers = ["user-name"]` to give those Identity Center users read-only access to every account of the project. It creates a `<project>-developers` group with the `Developer` permission set: AWS's `ViewOnlyAccess` plus a policy named `developer-access`, which the project defines in its own IaC repo. Apply that policy there first, or the account assignment fails. A user must be in `local.identity_users` in `environments/main/identity-center.tf`.
+
 ## Removing Projects
 
 Removing a project requires removing the entry in `config/projects.tfvars`, as well as some manual steps:

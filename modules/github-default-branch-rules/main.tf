@@ -20,16 +20,15 @@ resource "github_repository_ruleset" "default_branch" {
       content {
         # A required approval would block a single maintainer, who can't approve
         # their own pull request.
-        required_approving_review_count = 0
+        required_approving_review_count   = 0
+        required_review_thread_resolution = var.require_conversation_resolution
       }
     }
 
     dynamic "required_status_checks" {
       for_each = length(var.required_checks) > 0 ? [1] : []
       content {
-        # Requiring an up-to-date branch would hold back automerged dependency
-        # updates, and a single maintainer rarely has competing pull requests.
-        strict_required_status_checks_policy = false
+        strict_required_status_checks_policy = var.require_up_to_date_branch
 
         dynamic "required_check" {
           for_each = toset(var.required_checks)

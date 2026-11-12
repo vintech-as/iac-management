@@ -14,3 +14,15 @@ variable "required_checks" {
   type        = list(string)
   default     = []
 }
+
+variable "require_up_to_date_branch" {
+  description = "Whether a pull request must be up to date with the default branch before merging. Off by default: it holds back automerged dependency updates until they are rebased."
+  type        = bool
+  default     = false
+}
+
+variable "require_conversation_resolution" {
+  description = "Whether every review conversation must be resolved before merging"
+  type        = bool
+  default     = false
+}
