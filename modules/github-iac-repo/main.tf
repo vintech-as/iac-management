@@ -6,6 +6,8 @@ resource "github_repository" "iac_repo" {
   has_wiki    = false
 
   delete_branch_on_merge = true
+  # Only offers the button. A pull request merges by itself only once someone turns it on.
+  allow_auto_merge = true
 
   template {
     owner      = var.organization_name
@@ -16,7 +18,8 @@ resource "github_repository" "iac_repo" {
 module "default_branch_rules" {
   source = "../github-default-branch-rules"
 
-  repository = github_repository.iac_repo.name
+  repository      = github_repository.iac_repo.name
+  required_checks = var.required_checks
 }
 
 resource "github_repository_environment" "aws_environments" {

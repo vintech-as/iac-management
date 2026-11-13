@@ -30,6 +30,8 @@ resource "github_repository" "code_repo" {
   auto_init = true
 
   delete_branch_on_merge = true
+  # Only offers the button. A pull request merges by itself only once someone turns it on.
+  allow_auto_merge = true
 
   lifecycle {
     ignore_changes = [auto_init]

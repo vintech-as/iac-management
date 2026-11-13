@@ -12,3 +12,12 @@ variable "iac_repo_configs" {
   }))
   default = {}
 }
+
+# config/projects.tfvars, read directly so settings that need nothing computed by the
+# earlier stages don't have to be passed through them. Only what this stage uses is
+# read from it, and main checks its type.
+variable "projects" {
+  description = "The projects from config/projects.tfvars"
+  type        = any
+  default     = {}
+}

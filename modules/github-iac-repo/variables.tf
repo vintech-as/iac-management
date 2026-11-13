@@ -12,3 +12,9 @@ variable "environment_role_arns" {
   description = "Map of environment names to role ARNs"
   type        = map(string)
 }
+
+variable "required_checks" {
+  description = "Names of the status checks that must pass before merging to the default branch"
+  type        = list(string)
+  default     = []
+}
