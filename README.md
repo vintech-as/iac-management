@@ -21,22 +21,23 @@ This repository contains [OpenTofu](https://opentofu.org/) (an open source alter
 
 2. **Pull Request**
    - Create a PR with your changes
-   - The tofu-init-validate-plan-comment workflow will automatically:
+   - The tofu-init-validate-plan-comment workflow will automatically, for each of the three stages (`main`, `bootstrap` and `project-iac-repo`):
      - Initialize OpenTofu
      - Validate the configuration
      - Generate a plan
-     - Comment the plan on your PR
+     - Comment the plan on your PR, one comment per stage
+   - A later stage plans against what the stage before it last applied. If your PR changes `main`'s outputs too, the later stages only see that once `main` is applied.
 
 3. **Review & Merge**
    - Review the generated plan in the PR comments
    - Once approved, merge to the `master` branch
 
 4. **Approval & Apply**
-   - The tofu-apply workflow will:
-     - Run another tofu plan
-     - Create an approval request in GitHub Issues
-     - Wait for manual approval from authorized approvers
-     - Apply the changes once approved
+   - Run the tofu-apply workflow by hand. It goes through the stages in order, `main`, then `bootstrap`, then `project-iac-repo`, and for each:
+     - Runs another tofu plan
+     - If the plan has changes, creates an approval request in GitHub Issues and waits for approval from authorized approvers
+     - Applies the changes once approved
+   - A stage without changes is passed without asking, so a change to one stage needs one approval. Each stage reads the outputs the stage before it last applied from that stage's state, so it doesn't need that stage to change in the same run. A rejected approval stops the stages after it.
 
 ## Adding New Projects
 

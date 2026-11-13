@@ -8,9 +8,19 @@ permissions:
   contents: read
   pull-requests: write
 
+# Stages read each other's state, so two runs must never overlap.
+concurrency:
+  group: tofu-apply
+  cancel-in-progress: false
+
 env:
   MANUAL_APPROVAL_APPROVERS: haraldvinje
 
+# The three stages always run in order: main, then bootstrap, then the project IaC
+# repos. Each plans, and asks for approval and applies only when its plan has changes,
+# so a change to one stage needs one approval. A stage takes the outputs the stage
+# before it last applied, read from its state, so it never depends on that stage
+# changing in the same run. A rejected approval stops the stages after it.
 jobs:
   # ----- MAIN ENVIRONMENT -----
   tofu-plan-main:
@@ -26,7 +36,7 @@ jobs:
     name: Manual Approval for Main Environment
     runs-on: ubuntu-latest
     needs: tofu-plan-main
-    if: success()
+    if: needs.tofu-plan-main.outputs.changes == 'true'
     permissions:
       issues: write
 
@@ -87,62 +97,32 @@ jobs:
             -out=tfplan
           tofu apply -auto-approve tfplan
 
-      - name: Get OpenTofu Outputs for Bootstrapping accounts
-        working-directory: environments/main
-        run: |
-          mkdir -p /tmp/bootstrap-configs
-          bootstrap_configs=$(tofu output)
-          echo "${bootstrap_configs}" > /tmp/bootstrap-configs/terraform.tfvars
-
-      - name: Upload bootstrap tfvars file
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: bootstrap-configs-tfvars
-          path: /tmp/bootstrap-configs
-          overwrite: true
-          retention-days: 1
-
   # ----- BOOTSTRAP ACCOUNTS -----
   tofu-plan-bootstrap:
     name: OpenTofu Plan for Bootstrap Accounts
-    needs: tofu-apply-main
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Setup OpenTofu
-        uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
-        with:
-          tofu_version_file: .tool-versions
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
-        with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: eu-west-1
-
-      - name: Download bootstrap tfvars
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: bootstrap-configs-tfvars
-          path: ./environments/bootstrap
-
-      - name: OpenTofu Plan
-        working-directory: environments/bootstrap
-        run: |
-          # Wait for the main environment to be fully provisioned, specifically AWS accounts
-          sleep 30
-
-          tofu init
-          tofu validate -no-color
-          tofu plan -no-color
+    needs: [tofu-plan-main, tofu-manual-approve-main, tofu-apply-main]
+    # Runs whether main changed or not, but not after main failed or was rejected.
+    if: >-
+      !cancelled()
+      && needs.tofu-plan-main.result == 'success'
+      && needs.tofu-manual-approve-main.result != 'failure'
+      && needs.tofu-apply-main.result != 'failure'
+    uses: ./.github/workflows/tofu-init-validate-plan-comment.yml
+    with:
+      working-directory: "environments/bootstrap"
+      var-file-path: ""
+      upstream-state-key: "main/terraform.tfstate"
+      upstream-output: "bootstrap_configs"
+      # Accounts main just created take a moment before roles can be assumed in them.
+      wait-for-accounts: ${{ needs.tofu-apply-main.result == 'success' }}
+      skip-comment: true
+    secrets: inherit
 
   tofu-manual-approve-bootstrap:
     name: Manual Approval for Bootstrap Accounts
     runs-on: ubuntu-latest
     needs: tofu-plan-bootstrap
-    if: success()
+    if: needs.tofu-plan-bootstrap.outputs.changes == 'true'
     permissions:
       issues: write
 
@@ -160,7 +140,7 @@ jobs:
   tofu-apply-bootstrap:
     name: OpenTofu Apply for Bootstrap Accounts
     runs-on: ubuntu-latest
-    needs: [tofu-manual-approve-bootstrap, tofu-apply-main]
+    needs: tofu-manual-approve-bootstrap
     if: github.ref == 'refs/heads/master'
 
     steps:
@@ -178,11 +158,13 @@ jobs:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: eu-west-1
 
-      - name: Download Bootstrap Configs
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: bootstrap-configs-tfvars
-          path: ./environments/bootstrap
+      - name: Read the main environment's outputs
+        working-directory: environments/bootstrap
+        run: |
+          aws s3 cp "s3://vintech-terraform-state-eu-west-1/main/terraform.tfstate" - \
+            | jq '.outputs.bootstrap_configs.value as $value
+                  | if $value == null then error("No bootstrap_configs in the state") else {bootstrap_configs: $value} end' \
+            > upstream.auto.tfvars.json
 
       - name: Bootstrap Resources via OpenTofu
         working-directory: environments/bootstrap
@@ -190,71 +172,31 @@ jobs:
           tofu init
           tofu apply -auto-approve
 
-      - name: Get OpenTofu Outputs for creating IaC repos
-        working-directory: environments/bootstrap
-        run: |
-          mkdir -p /tmp/iac-repo-configs
-          iac_repo_configs=$(tofu output)
-          echo "${iac_repo_configs}" > /tmp/iac-repo-configs/terraform.tfvars
-
-      - name: Upload IaC repo configs
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: iac-repo-configs-tfvars
-          path: /tmp/iac-repo-configs
-          overwrite: true
-          retention-days: 1
-
   # ----- PROJECT IAC REPOS -----
   tofu-plan-project-iac-repo:
     name: OpenTofu Plan for Project IaC Repos
-    needs: tofu-apply-bootstrap
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Setup OpenTofu
-        uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
-        with:
-          tofu_version_file: .tool-versions
-
-      - name: Generate GitHub App token
-        id: generate_token
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
-        with:
-          client-id: ${{ vars.GH_APP_CLIENT_ID }}
-          private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
-          # org-wide token: the GitHub provider creates/manages repos across the org
-          owner: ${{ github.repository_owner }}
-
-      - name: Export GitHub App token
-        run: echo "GH_TOKEN=${{ steps.generate_token.outputs.token }}" >> "$GITHUB_ENV"
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
-        with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: eu-west-1
-
-      - name: Download IaC repo configs
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: iac-repo-configs-tfvars
-          path: ./environments/project-iac-repo
-
-      - name: OpenTofu Plan
-        working-directory: environments/project-iac-repo
-        run: |
-          tofu init
-          tofu validate -no-color
-          tofu plan -var-file="../../config/projects.tfvars" -no-color
+    needs: [tofu-plan-bootstrap, tofu-manual-approve-bootstrap, tofu-apply-bootstrap]
+    # Runs whether bootstrap changed or not, but not after it failed or was rejected,
+    # nor when bootstrap's plan never ran because main was.
+    if: >-
+      !cancelled()
+      && needs.tofu-plan-bootstrap.result == 'success'
+      && needs.tofu-manual-approve-bootstrap.result != 'failure'
+      && needs.tofu-apply-bootstrap.result != 'failure'
+    uses: ./.github/workflows/tofu-init-validate-plan-comment.yml
+    with:
+      working-directory: "environments/project-iac-repo"
+      var-file-path: "config/projects.tfvars"
+      upstream-state-key: "bootstrap/terraform.tfstate"
+      upstream-output: "iac_repo_configs"
+      skip-comment: true
+    secrets: inherit
 
   tofu-manual-approve-project-iac-repo:
     name: Manual Approval for Project IaC Repos
     runs-on: ubuntu-latest
     needs: tofu-plan-project-iac-repo
-    if: success()
+    if: needs.tofu-plan-project-iac-repo.outputs.changes == 'true'
     permissions:
       issues: write
 
@@ -272,7 +214,7 @@ jobs:
   tofu-apply-project-iac-repo:
     name: OpenTofu Apply for Project IaC Repos
     runs-on: ubuntu-latest
-    needs: [tofu-manual-approve-project-iac-repo, tofu-apply-bootstrap]
+    needs: tofu-manual-approve-project-iac-repo
     if: github.ref == 'refs/heads/master'
 
     steps:
@@ -297,11 +239,13 @@ jobs:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: eu-west-1
 
-      - name: Download Role ARN Data
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: iac-repo-configs-tfvars
-          path: ./environments/project-iac-repo
+      - name: Read the bootstrap stage's outputs
+        working-directory: environments/project-iac-repo
+        run: |
+          aws s3 cp "s3://vintech-terraform-state-eu-west-1/bootstrap/terraform.tfstate" - \
+            | jq '.outputs.iac_repo_configs.value as $value
+                  | if $value == null then error("No iac_repo_configs in the state") else {iac_repo_configs: $value} end' \
+            > upstream.auto.tfvars.json
 
       - name: Setup OpenTofu
         uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2

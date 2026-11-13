@@ -8,15 +8,34 @@ on:
         type: string
         required: true
       var-file-path:
-        description: 'Path to the OpenTofu variable file, relative to the repository root'
+        description: 'Path to the OpenTofu variable file, relative to the repository root. Empty for none.'
         type: string
         required: false
         default: 'config/projects.tfvars'
+      upstream-state-key:
+        description: "Key of the previous stage's state in the state bucket, such as main/terraform.tfstate. Empty for none."
+        type: string
+        required: false
+        default: ''
+      upstream-output:
+        description: "The previous stage's output this stage takes as the variable of the same name"
+        type: string
+        required: false
+        default: ''
+      wait-for-accounts:
+        description: 'Wait for accounts the previous stage just created to be ready'
+        type: boolean
+        required: false
+        default: false
       skip-comment:
         description: 'Skip commenting on the PR'
         type: boolean
         required: false
         default: false
+    outputs:
+      changes:
+        description: "'true' when the plan would change anything"
+        value: ${{ jobs.init-validate-plan-comment.outputs.changes }}
 
 
 permissions:
@@ -28,6 +47,8 @@ jobs:
   init-validate-plan-comment:
     name: OpenTofu Init, Validate, Plan and Comment
     runs-on: ubuntu-latest
+    outputs:
+      changes: ${{ steps.plan.outputs.changes }}
 
     steps:
       - name: Checkout code
@@ -57,6 +78,25 @@ jobs:
         with:
           tofu_version_file: .tool-versions
 
+      # The previous stage's last applied outputs, so this stage can run without that
+      # stage applying in the same run. Read before init: bootstrap's providers need them.
+      - name: Read the previous stage's outputs
+        if: inputs.upstream-output != ''
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          STATE_KEY: ${{ inputs.upstream-state-key }}
+          OUTPUT: ${{ inputs.upstream-output }}
+        run: |
+          aws s3 cp "s3://vintech-terraform-state-eu-west-1/${STATE_KEY}" - \
+            | jq --arg name "$OUTPUT" \
+              '.outputs[$name].value as $value
+               | if $value == null then error("No output \($name) in the state") else {($name): $value} end' \
+            > upstream.auto.tfvars.json
+
+      - name: Wait for new accounts
+        if: inputs.wait-for-accounts
+        run: sleep 30
+
       - name: OpenTofu Init
         working-directory: ${{ inputs.working-directory }}
         run: tofu init
@@ -70,11 +110,19 @@ jobs:
         working-directory: ${{ inputs.working-directory }}
         env:
           TF_VAR_contact_phone: ${{ secrets.SECURITY_CONTACT_PHONE }}
+          VAR_FILE: ${{ inputs.var-file-path }}
         run: |
-          tofu plan \
-            -var-file="${GITHUB_WORKSPACE}/${{ inputs.var-file-path }}" \
-            -no-color \
-            -out=tfplan
+          args=(-no-color -out=tfplan -detailed-exitcode)
+          if [ -n "$VAR_FILE" ]; then args+=(-var-file="${GITHUB_WORKSPACE}/${VAR_FILE}"); fi
+
+          # -detailed-exitcode: 0 is no changes, 1 an error and 2 changes.
+          set +e
+          tofu plan "${args[@]}"
+          code=$?
+          set -e
+          if [ "$code" -eq 1 ]; then exit 1; fi
+          if [ "$code" -eq 2 ]; then echo "changes=true"; else echo "changes=false"; fi >> "$GITHUB_OUTPUT"
+
           tofu show -no-color tfplan > plan.txt
 
       - name: Check for Plan Errors
@@ -85,9 +133,30 @@ jobs:
             exit 1
           fi
 
+      - name: Write the PR comment
+        if: ${{ !inputs.skip-comment && github.event_name == 'pull_request' }}
+        working-directory: ${{ inputs.working-directory }}
+        env:
+          STAGE: ${{ inputs.working-directory }}
+          UPSTREAM: ${{ inputs.upstream-state-key }}
+        run: |
+          {
+            echo "### Plan for \`${STAGE}\`"
+            if [ -n "$UPSTREAM" ]; then
+              echo
+              echo "Planned against the previous stage's applied outputs (\`${UPSTREAM}\`). If this PR also changes that stage, those changes only reach this one when applied."
+            fi
+            echo
+            echo '```'
+            cat plan.txt
+            echo '```'
+          } > comment.md
+
       - name: Comment Plan on PR
         uses: mshick/add-pr-comment@ec328af66588ab8f77cdeb2c264f14aba45bbf59 # v3.12.0
         if: ${{ !inputs.skip-comment && github.event_name == 'pull_request' }}
         with:
-          message-path: ${{ inputs.working-directory }}/plan.txt
+          # One comment per stage, updated on each push.
+          message-id: plan-${{ inputs.working-directory }}
+          message-path: ${{ inputs.working-directory }}/comment.md
           repo-token: ${{ secrets.GITHUB_TOKEN }}
