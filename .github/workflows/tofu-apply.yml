@@ -248,7 +248,7 @@ jobs:
         run: |
           tofu init
           tofu validate -no-color
-          tofu plan -no-color
+          tofu plan -var-file="../../config/projects.tfvars" -no-color
 
   tofu-manual-approve-project-iac-repo:
     name: Manual Approval for Project IaC Repos
@@ -312,4 +312,4 @@ jobs:
         working-directory: environments/project-iac-repo
         run: |
           tofu init
-          tofu apply -auto-approve
+          tofu apply -var-file="../../config/projects.tfvars" -auto-approve

@@ -17,6 +17,9 @@ variable "projects" {
     code_repo_names = list(string)
 
     code_repo_required_checks = optional(map(list(string)), {})
+    # Status checks that must pass before merging to the project's IaC repository.
+    # Declared here so the config is checked; the project-iac-repo stage applies it.
+    iac_repo_required_checks = optional(list(string), [])
 
     # Stricter merge rules, by code repository name. Both are off unless set.
     code_repo_branch_rules = optional(map(object({
