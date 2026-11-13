@@ -14,6 +14,8 @@ permissions:
   contents: read
   pull-requests: write
 
+# Every stage is planned. A later stage plans against what the stage before it last
+# applied, so it doesn't see that stage's changes in this PR until they're applied.
 jobs:
   tofu-plan:
     name: OpenTofu Plan, Validate, and Comment for the main environment
@@ -21,4 +23,24 @@ jobs:
     with:
       working-directory: 'environments/main'
       var-file-path: 'config/projects.tfvars'
+    secrets: inherit
+
+  tofu-plan-bootstrap:
+    name: OpenTofu Plan, Validate, and Comment for bootstrapping accounts
+    uses: ./.github/workflows/tofu-init-validate-plan-comment.yml
+    with:
+      working-directory: 'environments/bootstrap'
+      var-file-path: ''
+      upstream-state-key: 'main/terraform.tfstate'
+      upstream-output: 'bootstrap_configs'
+    secrets: inherit
+
+  tofu-plan-project-iac-repo:
+    name: OpenTofu Plan, Validate, and Comment for project IaC repos
+    uses: ./.github/workflows/tofu-init-validate-plan-comment.yml
+    with:
+      working-directory: 'environments/project-iac-repo'
+      var-file-path: 'config/projects.tfvars'
+      upstream-state-key: 'bootstrap/terraform.tfstate'
+      upstream-output: 'iac_repo_configs'
     secrets: inherit
