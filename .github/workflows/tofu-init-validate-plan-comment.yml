@@ -77,6 +77,9 @@ jobs:
         uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
         with:
           tofu_version_file: .tool-versions
+          # The wrapper turns exit code 2, meaning the plan has changes, into success,
+          # which hides the changes from -detailed-exitcode below.
+          tofu_wrapper: false
 
       # The previous stage's last applied outputs, so this stage can run without that
       # stage applying in the same run. Read before init: bootstrap's providers need them.
@@ -139,9 +142,16 @@ jobs:
         env:
           STAGE: ${{ inputs.working-directory }}
           UPSTREAM: ${{ inputs.upstream-state-key }}
+          CHANGES: ${{ steps.plan.outputs.changes }}
         run: |
           {
             echo "### Plan for \`${STAGE}\`"
+            echo
+            if [ "$CHANGES" = "true" ]; then
+              echo "Has changes: applying will ask for approval at this stage."
+            else
+              echo "No changes: applying will pass this stage without asking."
+            fi
             if [ -n "$UPSTREAM" ]; then
               echo
               echo "Planned against the previous stage's applied outputs (\`${UPSTREAM}\`). If this PR also changes that stage, those changes only reach this one when applied."
